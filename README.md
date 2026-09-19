@@ -19,6 +19,34 @@ Informe de decisiones técnicas del equipo
 | Aaron Chock Chock | achockc@ucenfotec.ac.cr |
 | Marvin Jesús Calvo Acuña | mcalvoa@ucenfotec.ac.cr |
 
+### Abreviaturas
+
+| Sigla | Significado |
+|---|---|
+| CONAGUA | Comisión Nacional del Agua |
+| DBO | Demanda Bioquímica de Oxígeno |
+| DQO | Demanda Química de Oxígeno |
+| SST | Sólidos Suspendidos Totales |
+| COLI_FEC / CF | Coliformes fecales |
+| E_COLI | Escherichia coli |
+| ENTEROC | Enterococos fecales |
+| OD / OD_PORC | Oxígeno disuelto (porcentaje de saturación) |
+| OD_PORC_SUP | Oxígeno disuelto en superficie |
+| TOX / UT | Toxicidad / Unidades de Toxicidad |
+| NMP | Número Más Probable (conteo bacteriano) |
+| LD / LOD | Límite de detección (Limit of Detection) |
+| ND | No determinado / no detectado (no se midió) |
+| NaN | Not a Number (valor faltante en pandas) |
+| CSV | Archivo de valores separados por comas |
+| EDA | Análisis Exploratorio de Datos |
+| IQR | Rango intercuartílico (regla de outliers 1.5*IQR) |
+| R2 | Coeficiente de determinación (no se usa en este proyecto) |
+| RMSE | Raíz del error cuadrático medio (no se usa en este proyecto) |
+| K-means | Agrupamiento por k medias (no supervisado) |
+| COSTERO | Cuerpo de agua de costa / mar |
+| LÓTICO | Agua corriente (ríos, arroyos) |
+| LÉNTICO | Agua quieta (lagos, presas) |
+
 ---
 
 ## 1. Objetivo y pregunta del enunciado
@@ -35,12 +63,12 @@ K-means **agrupa** sitios por coordenadas. El semáforo (Verde, Amarillo, Rojo) 
 
 ## 2. Papel de cada grupo de variables
 
-No todas las columnas del CSV entran al mismo paso. Separarlas evita meter DBO o el semáforo dentro de K-means, o tratar `X_NUMERICAS` como si fueran las X del enunciado.
+No todas las columnas del CSV entran al mismo paso. Separarlas evita meter DBO (demanda bioquímica de oxígeno) o el semáforo dentro de K-means, o tratar `X_NUMERICAS` como si fueran las X del enunciado.
 
 | Grupo | Columnas | Papel en el proyecto |
 |---|---|---|
-| Laboratorio (`COLS_LAB`) | DBO, DQO, SST, coliformes, E. coli, enterococos, OD, toxicidad | Se convierten a número con `a_numero` (`<2`, `ND`, flotantes). Aquí ocurre la mezcla de tipos. |
-| EDA (`X_NUMERICAS`) | DBO, DQO, SST, COLI_FEC, E_COLI, ENTEROC, OD_PORC, OD_PORC_SUP | Media, mediana, outliers, correlaciones y Pipeline del Lab 1. **No** entran a K-means. |
+| Laboratorio (`COLS_LAB`) | DBO (demanda bioquímica de oxígeno), DQO (demanda química de oxígeno), SST (sólidos suspendidos totales), coliformes, E. coli, enterococos, OD (oxígeno disuelto), toxicidad | Se convierten a número con `a_numero` (`<2`, `ND`, flotantes). Aquí ocurre la mezcla de tipos. |
+| EDA (`X_NUMERICAS`; análisis exploratorio) | DBO, DQO, SST, COLI_FEC (coliformes fecales), E_COLI (E. coli), ENTEROC (enterococos), OD_PORC (oxígeno disuelto), OD_PORC_SUP (oxígeno superficial) | Media, mediana, outliers, correlaciones y Pipeline del Lab 1. **No** entran a K-means. |
 | Geográficas (`COLS_GEO`) | `LONGITUD`, `LATITUD` | **X del agrupamiento.** Resuelven la parte de ubicación del enunciado. No se imputan. |
 | Calidad (`Y`) | `SEMAFORO` | **Validación** de la relación (Verde / Amarillo / Rojo). No se usa para armar los clusters. |
 | Contexto | `GRUPO`, `ESTADO`, `CUMPLE_CON_*` | `GRUPO` sirve para comprobar nulos por tipo de agua (COSTERO, LÓTICO, LÉNTICO). No se modelan. |
@@ -68,7 +96,7 @@ Se eliminan registros sin `CLAVE` o con `CLAVE` vacía (filas en blanco al final
 
 ### 3.4 Datos mal escritos y sustitución (datos censurados)
 
-Las columnas de laboratorio mezclan texto y número: `6`, `4.26`, `<2`, `ND`. La técnica es **sustitución de datos censurados** (*LOD substitution*).
+Las columnas de laboratorio mezclan texto y número: `6`, `4.26`, `<2`, `ND`. La técnica es **sustitución de datos censurados** (LOD = Limit of Detection, límite de detección).
 
 | Caso en el CSV | Decisión | Técnica | Justificación |
 |---|---|---|---|
@@ -77,9 +105,9 @@ Las columnas de laboratorio mezclan texto y número: `6`, `4.26`, `<2`, `ND`. La
 | `>100` | El número del límite | Sustitución por el límite (censura derecha) | Permite EDA. Se pierde que era mayor que. |
 | `6`, `4.26` | Se deja como `float` | Conversión numérica | Ya es una medición. |
 
-Ejemplo: en `DBO_mg/L`, `<2` pasa a `1.0`. Un `4.26` se queda. LOD/2 **no** se aplica a toda la base: solo a celdas de `COLS_LAB` que empiezan con `<`. Semáforo, estado y `CUMPLE_CON_*` no se convierten así. Lat/lon solo se pasan a `float`.
+Ejemplo: en `DBO_mg/L`, `<2` pasa a `1.0`. Un `4.26` se queda. LOD/2 (límite de detección entre 2) **no** se aplica a toda la base: solo a celdas de `COLS_LAB` que empiezan con `<`. Semáforo, estado y `CUMPLE_CON_*` no se convierten así. Lat/lon solo se pasan a `float`.
 
-### 3.5 Otra fórmula: LOD / sqrt(2)
+### 3.5 Otra fórmula: LOD / sqrt(2) (límite de detección entre raíz de 2)
 
 También existe **LOD/sqrt(2)** (aproximadamente 0.707 x LD), usada a veces si se supone lognormalidad. En este proyecto se aplica **LOD/2** por simplicidad: si el laboratorio reporta <2, el valor usado es 1. Ninguna fórmula es la concentración verdadera. No se implementó LOD/sqrt(2).
 
@@ -95,11 +123,11 @@ No se borra toda fila con algún NaN ni toda columna con un faltante.
 |---|---|---|
 | `LATITUD` o `LONGITUD` faltante | Eliminar la fila | K-means no puede agrupar sin coordenadas. **No se imputan.** |
 | `SEMAFORO` faltante | Eliminar la fila | Sin calidad no se valida la relación. **No se imputa.** |
-| DBO, DQO, enterococos, oxígeno, etc. | Dejar `NaN` | Ese `GRUPO` puede no medir ese parámetro. Se comprueba después. |
+| DBO (demanda bioquímica), DQO (demanda química), enterococos, oxígeno, etc. | Dejar `NaN` | Ese `GRUPO` puede no medir ese parámetro. Se comprueba después. |
 
 ### 4.1 Nulos por `GRUPO`
 
-Después de convertir se calcula el % de nulos de `X_NUMERICAS` por COSTERO / LÓTICO / LÉNTICO. En estos datos: en COSTERO falta DBO en ~91 % de sitios; en LÓTICO y LÉNTICO faltan enterococos en ~100 % y 99 %. En COSTERO los enterococos sí se midieron. No es un error de tipeo: no todos los grupos se evalúan con los mismos parámetros.
+Después de convertir se calcula el % de nulos de `X_NUMERICAS` por COSTERO (costa) / LÓTICO (ríos) / LÉNTICO (lagos o presas). En estos datos: en COSTERO falta DBO en ~91 % de sitios; en LÓTICO y LÉNTICO faltan enterococos en ~100 % y 99 %. En COSTERO los enterococos sí se midieron. No es un error de tipeo: no todos los grupos se evalúan con los mismos parámetros.
 
 ---
 
@@ -109,7 +137,7 @@ El laboratorio lista cuatro formas de tratar nulos. No se usan las cuatro.
 
 | Opción del Lab 1 | ¿Se usó? | Decisión del equipo |
 |---|---|---|
-| Eliminar toda fila con al menos un nulo | No | Se perderían costeros (sin DBO) y muchos ríos (sin enterococos). |
+| Eliminar toda fila con al menos un nulo | No | Se perderían costeros (sin DBO, demanda bioquímica) y muchos ríos (sin enterococos). |
 | Eliminar toda columna con al menos un nulo | No | Se irían DBO, DQO, coliformes y oxígeno. |
 | Imputar con media / mediana / constante | Solo en el Pipeline de calidad | Mediana + `MinMaxScaler`. Esa matriz **no** entra a K-means. |
 | Imputar y agregar columna flag | No | El enunciado no lo pide. |
@@ -122,12 +150,11 @@ Se copia el patrón del Lab 1. Se cambia la herramienta: el lab predice un núme
 
 ## 6. Cómo se resuelve el enunciado (dos pasos)
 
-La calidad **no** entra a K-means. Si el semáforo o el DBO entraran al `fit`, el cruce posterior sería circular.
+La calidad **no** entra a K-means. Si el semáforo o el DBO (demanda bioquímica de oxígeno) entraran al `fit`, el cruce posterior sería circular.
 
 ### 6.1 Paso 1. Agrupar solo por ubicación
 
-K-means recibe únicamente `LONGITUD` y `LATITUD` escaladas. Se prueban *k* = 2
-10. El *k* del mapa se elige por el **codo**; se reporta silueta. *k* = 3 es solo comparación: tres colores no implican tres regiones.
+K-means recibe únicamente `LONGITUD` y `LATITUD` escaladas. Se prueban k = 2 a 10. El *k* del mapa se elige por el **codo**; se reporta silueta. *k* = 3 es solo comparación: tres colores no implican tres regiones.
 
 Resultado: etiqueta `cluster` y centroides. Cada cluster es una **región**, no agua buena/mala.
 
@@ -152,7 +179,7 @@ Se ajustó K-means para agrupar por coordenadas. **No** se entrenó un predictor
 
 > K-means no clasifica calidad; clasifica sitios por coordenadas. Después comparamos el semáforo dentro de cada región. Si los porcentajes de verde y rojo cambian entre clusters, la calidad está ligada a la ubicación. Si no cambian, latitud y longitud no bastan para explicar la calidad del agua.
 
-El CSV original permanece intacto. Las mediciones de laboratorio quedaron numéricas con LOD/2 (y el límite en valores `>LD`). Los nulos de calidad se interpretaron con `GRUPO`. El Pipeline del Laboratorio 1 quedó como preparación de calidad y no se usó para agrupar.
+El CSV original permanece intacto. Las mediciones de laboratorio quedaron numéricas con LOD/2 (mitad del límite de detección) (y el límite en valores `>LD`). Los nulos de calidad se interpretaron con `GRUPO`. El Pipeline del Laboratorio 1 quedó como preparación de calidad y no se usó para agrupar.
 
 ---
 
