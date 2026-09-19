@@ -7,7 +7,7 @@ Informe de decisiones técnicas del equipo
 |---|---|
 | Curso / materia | Ciencias de Datos con Python |
 | Modalidad | Equipo |
-| Profesor | Jorge Ariel Bermúdez Telleria |
+| Profesor | Jorge Ariel Bermúdez Telleria | jbermudez@ucenfotec.ac.cr |
 | Dataset | Datos de calidad del agua de sitios de monitoreo de aguas superficiales 2020 (CONAGUA) |
 | Fecha | 19 de septiembre de 2026 |
 
