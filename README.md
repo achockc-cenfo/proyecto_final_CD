@@ -46,6 +46,63 @@ Informe de decisiones técnicas del equipo
 | COSTERO | Cuerpo de agua de costa / mar |
 | LÓTICO | Agua corriente (ríos, arroyos) |
 | LÉNTICO | Agua quieta (lagos, presas) |
+| SEMAFORO | Clasificación Verde / Amarillo / Rojo de la calidad del sitio |
+| mg/L | Miligramos por litro (concentración) |
+
+### Qué significan en la práctica
+
+Las siglas de laboratorio no son “variables de Python”. Son mediciones de si el agua está limpia, oxigenada o contaminada. CONAGUA las usa para armar el **semáforo**. K-means **no** las usa: solo agrupa por latitud y longitud.
+
+**Agua superficial.** Es agua que corre o se acumula en la superficie (ríos, lagos, presas, costa). No es agua subterránea (pozos). Este proyecto usa solo el CSV de superficiales 2020.
+
+**Materia orgánica (qué tan “sucia” está el agua)**
+
+- **DBO** (demanda bioquímica de oxígeno): cuánto oxígeno gastan las **bacterias** al descomponer restos orgánicos (aguas residuales, granjas, comida). DBO alta → el río o lago se queda sin oxígeno; peces y plantas sufren. Es el indicador clásico de contaminación biodegradable.
+- **DQO** (demanda química de oxígeno): cuánto oxígeno haría falta para oxidar **casi toda** la materia orgánica, también la industrial o poco biodegradable. Casi siempre DQO ≥ DBO. Si DQO es alta y DBO no tanto, apunta más a químicos que a “podredumbre” biológica. En esta base muchos sitios **Rojo** fallan por DQO (aparece en `CONTAMINANTES`).
+- **SST** (sólidos suspendidos totales): partículas que enturbian el agua (lodo, arena, materia). Agua turbia, menos luz, peor hábitat. No es lo mismo que DBO/DQO: un río puede ir fangoso por lluvia y aún así no estar “podrido”.
+
+**Bacterias (riesgo sanitario, no “olor a podrido”)**
+
+- **COLI_FEC / CF** (coliformes fecales): bacterias típicas del intestino. Indican contaminación por heces (humanas o de animales). No identifican la especie exacta.
+- **E_COLI** (*Escherichia coli*): más específica de origen fecal. Relacionada con enfermedades gastrointestinales si el agua se usa para beber, riego o recreación.
+- **ENTEROC** (enterococos fecales): otro indicador fecal. CONAGUA lo usa sobre todo en **agua de mar (COSTERO)**. Por eso en ríos y lagos casi no aparece y en costa sí. Ese hueco no es un error de tipeo.
+- **NMP** (número más probable): forma de **contar** bacterias en 100 mL. No es un contaminante; es la unidad (`COLI_FEC_NMP_100mL`).
+
+**Oxígeno y toxicidad**
+
+- **OD / OD_PORC** (oxígeno disuelto, % de saturación): cuánto oxígeno hay disuelto respecto al máximo posible a esa temperatura. Bajo = agua “asfixiada” (anoxia o hipoxia), a menudo ligada a DBO alta. Los peces necesitan ese oxígeno.
+- **OD_PORC_SUP / _MED / _FON**: la misma idea en superficie, a media profundidad y en el fondo. En lagos el fondo suele tener menos oxígeno. Medio y fondo casi siempre van vacíos en el CSV; por eso no están en `X_NUMERICAS`.
+- **TOX / UT** (toxicidad / unidades de toxicidad): qué tan tóxica es el agua para organismos de prueba (p. ej. *Daphnia* o peces). Casi siempre viene vacía o “no tóxico”; se deja fuera del EDA principal.
+
+**Cómo CONAGUA resume la calidad**
+
+- **SEMAFORO**: Verde (aceptable), Amarillo (indicadores de alerta) o Rojo (contaminada). Es la calidad **ya clasificada** a partir de DBO, DQO, bacterias, oxígeno, etc. En el proyecto es la Y de **validación**, no entra a K-means.
+- **CALIDAD_DBO**, **CALIDAD_DQO**, etc.: etiqueta de ese parámetro (Excelente, Buena calidad, Aceptable, Contaminada, Fuertemente contaminada), según las escalas de `Escalas_superficial.csv`.
+- **CUMPLE_CON_***: `SI`, `NO` o `ND` por cada criterio. `ND` = no se midió en ese tipo de sitio (no es “cero contaminación”).
+- **CONTAMINANTES**: lista de lo que falló (ej. `DQO,CF`). Explica *por qué* un sitio es Rojo.
+- **GRUPO**: COSTERO (mar / costa), LÓTICO (río, arroyo), LÉNTICO (lago, presa). No todos miden lo mismo: costa casi no tiene DBO; ríos casi no tienen enterococos.
+
+**Sitio, cuenca y coordenadas**
+
+- **CLAVE / SITIO**: identificador y nombre del punto de monitoreo.
+- **CUENCA / CUERPO DE AGUA / SUBTIPO**: a qué río, presa o laguna pertenece el punto.
+- **LATITUD y LONGITUD**: dónde está el sitio. Son las **únicas X** de K-means. Latitud ≈ norte-sur; longitud ≈ este-oeste (en México la longitud es negativa).
+- **ORGANISMO_DE_CUENCA / ESTADO / MUNICIPIO**: contexto administrativo; no entran al agrupamiento.
+
+**Límites de laboratorio y huecos**
+
+- **LD / LOD** (límite de detección): el aparato no puede medir por debajo de un piso (ej. `<2`). Se sustituye por LD/2 para poder hacer EDA; **no** es la concentración verdadera.
+- **`>LD`**: el valor está por encima del tope que reporta el laboratorio. Se deja el número del límite.
+- **ND**: no se determinó (no se midió). Se deja como `NaN`; no se inventa un número.
+- **NaN**: faltante en pandas. Distinto de “cero contaminación” y distinto de un valor bajo como `<2`.
+
+**Términos del agrupamiento (no miden calidad)**
+
+- **Cluster**: región geográfica que arma K-means. No significa “agua buena” ni “agua mala”.
+- **k**: cuántas regiones se piden. Se elige con el codo; no es la Y del problema.
+- **Centroide**: punto “centro” de una región (promedio de lat/lon de sus sitios).
+- **Inercia**: qué tan apretados quedaron los sitios alrededor de su centro. Baja al subir `k`; se busca el **codo** (donde deja de bajar fuerte). No son kilómetros: lat/lon van escaladas.
+- **Silueta**: de −1 a 1. Cerca de 1 = el sitio está nítido en su región; cerca de 0 = frontera; negativo = mejor encajaría en otra. Se reporta; el mapa usa el `k` del codo.
 
 ---
 
