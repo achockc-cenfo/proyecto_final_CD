@@ -114,6 +114,16 @@ Este documento registra las decisiones del equipo para el proyecto final. El enu
 
 La rúbrica pide limpieza, EDA (`describe`, boxplot, correlaciones), K-means geográfico, mapa de México y conclusiones. Del Laboratorio 1 se reutiliza el **estilo** (`head`, `sample`, `info`, histogramas, raíz si hay sesgo, Pipeline con `SimpleImputer` y `MinMaxScaler`). El problema **no** es de predicción: no se entrena un modelo supervisado, no hay train/validación/prueba, no se calcula R² ni RMSE y no se usa regresión lineal.
 
+El notebook sigue el flujo **OSEMN**: Obtain → Scrub → Explore → Model → Interpret.
+
+| OSEMN | En el proyecto |
+|---|---|
+| Obtain | Carga del CSV CONAGUA 2020 (forma, tipos, muestra) |
+| Scrub | `a_numero`, LD/2, nulos por `GRUPO`; Pipeline de calidad (no entra a K-means) |
+| Explore | `describe`, sesgo, histogramas, boxplot, IQR, Pearson |
+| Model | K-means solo en lat/lon |
+| Interpret | Cruce cluster–semáforo, mapas y conclusiones |
+
 K-means **agrupa** sitios por coordenadas. El semáforo (Verde, Amarillo, Rojo) se usa **después** para validar si esas regiones se parecen en calidad. Eso es ajuste o agrupamiento, no el entrenamiento del Laboratorio 1.
 
 ---
