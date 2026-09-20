@@ -108,11 +108,11 @@ Las siglas de laboratorio no son “variables de Python”. Son mediciones de si
 
 ## 1. Objetivo y pregunta del enunciado
 
-Este documento registra las decisiones del equipo para el proyecto final. El enunciado pide aplicar lo visto en el laboratorio (inspección, limpieza, `describe`, boxplot, correlaciones y Pipeline) a datos reales y responder:
+Este documento registra las decisiones del equipo para el proyecto final. El enunciado pide implementar los conocimientos del curso en un proyecto con datos reales y responder:
 
 > ¿Existe una relación entre la **calidad del agua** y su **ubicación geográfica**, usando K-means sobre **latitud y longitud**?
 
-Se sigue el **estilo** del Laboratorio 1 (`head`, `sample`, `info`, histogramas, `describe`, raíz cuadrada si hay sesgo, Pipeline con `SimpleImputer` y `MinMaxScaler`). El problema **no** es de predicción: no se entrena un modelo supervisado, no hay train/validación/prueba, no se calcula R² ni RMSE y no se usa regresión lineal.
+La rúbrica pide limpieza, EDA (`describe`, boxplot, correlaciones), K-means geográfico, mapa de México y conclusiones. Del Laboratorio 1 se reutiliza el **estilo** (`head`, `sample`, `info`, histogramas, raíz si hay sesgo, Pipeline con `SimpleImputer` y `MinMaxScaler`). El problema **no** es de predicción: no se entrena un modelo supervisado, no hay train/validación/prueba, no se calcula R² ni RMSE y no se usa regresión lineal.
 
 K-means **agrupa** sitios por coordenadas. El semáforo (Verde, Amarillo, Rojo) se usa **después** para validar si esas regiones se parecen en calidad. Eso es ajuste o agrupamiento, no el entrenamiento del Laboratorio 1.
 
