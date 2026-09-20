@@ -126,11 +126,27 @@ No todas las columnas del CSV entran al mismo paso. Separarlas evita meter DBO (
 |---|---|---|
 | Laboratorio (`COLS_LAB`) | DBO (demanda bioquímica de oxígeno), DQO (demanda química de oxígeno), SST (sólidos suspendidos totales), coliformes, E. coli, enterococos, OD (oxígeno disuelto), toxicidad | Se convierten a número con `a_numero` (`<2`, `ND`, flotantes). Aquí ocurre la mezcla de tipos. |
 | EDA (`X_NUMERICAS`; análisis exploratorio) | DBO, DQO, SST, COLI_FEC (coliformes fecales), E_COLI (E. coli), ENTEROC (enterococos), OD_PORC (oxígeno disuelto), OD_PORC_SUP (oxígeno superficial) | Media, mediana, outliers, correlaciones y Pipeline del Lab 1. **No** entran a K-means. |
+| Sesgo (`cols_sesgo`) | DBO, DQO, SST, COLI_FEC, E_COLI | Histogramas original vs √ y Pipeline. Se eligen por media >> mediana (análisis, no un umbral automático). |
 | Geográficas (`COLS_GEO`) | `LONGITUD`, `LATITUD` | **X del agrupamiento.** Resuelven la parte de ubicación del enunciado. No se imputan. |
 | Calidad (`Y`) | `SEMAFORO` | **Validación** de la relación (Verde / Amarillo / Rojo). No se usa para armar los clusters. |
 | Contexto | `GRUPO`, `ESTADO`, `CUMPLE_CON_*` | `GRUPO` sirve para comprobar nulos por tipo de agua (COSTERO, LÓTICO, LÉNTICO). No se modelan. |
 
 **Qué resuelve el enunciado:** `LONGITUD` y `LATITUD` (K-means) más `SEMAFORO` (cruce posterior). `X_NUMERICAS` apoyan el EDA; no son las variables del agrupamiento geográfico.
+
+### 2.1 Raíz cuadrada (`cols_sesgo`)
+
+El Laboratorio 1 aplica raíz cuadrada **si hay sesgo**, no a toda columna numérica. `cols_sesgo` es el subconjunto de `X_NUMERICAS` con cola derecha: DBO, DQO, SST, COLI_FEC y E_COLI.
+
+**Cómo se validó.** No hay un `if sesgo > umbral` en el código. Se comparó **media vs mediana** en el `describe` (y, en el script local, una tabla de `sesgo_relativo` = (media − mediana) / mediana). Donde la media es mucho mayor que la mediana hay outliers que jalonean el promedio. Esa decisión se escribió luego como lista fija. Los histogramas original vs √ **ilustran** el efecto; no eligen las columnas.
+
+| Variable | ¿√? | Motivo |
+|---|---|---|
+| DBO, DQO, SST, coliformes, *E. coli* | Sí | Media >> mediana (sesgo positivo). |
+| OD / OD_PORC_SUP | No | Media ≈ mediana; ya es % de saturación. La √ lo distorsionaría. |
+| ENTEROC | No | También sesgado, pero casi solo se midió en COSTERO (pocos datos). |
+| LONGITUD, LATITUD | No | No son calidad. No se les aplica √. |
+
+La √ se usa en esos histogramas y en el Pipeline de calidad del Lab 1. **No** entra a K-means.
 
 ---
 
